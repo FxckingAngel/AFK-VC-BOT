@@ -97,6 +97,18 @@ intents = discord.Intents.default()
 intents.voice_states = True
 
 
+# ── Keyword ping config ───────────────────────────────────────────────────────
+# Words that trigger the ping (case-insensitive)
+TRIGGER_KEYWORDS: set[str] = {"kowon", "korone"}
+
+# User IDs to ping when a keyword is heard
+PING_USER_IDS: list[int] = [1020202075595997265, 751307102001299466]
+
+PING_MESSAGES: list[str] = [
+    "your gf may be calling you 💌",
+    "or a random 😭",
+]
+
 class AFKVCBot(discord.Client):
     def __init__(self) -> None:
         super().__init__(intents=intents)
@@ -124,6 +136,19 @@ class AFKVCBot(discord.Client):
             )
         )
         self.presence_watchdog.start()
+
+
+    async def on_message(self, message: discord.Message) -> None:
+        """Ping configured users when a trigger keyword is detected in any message."""
+        if message.author.bot:
+            return
+        content_lower = message.content.lower()
+        if any(kw in content_lower for kw in TRIGGER_KEYWORDS):
+            import random
+            mentions = " ".join(f"<@{uid}>" for uid in PING_USER_IDS)
+            response = random.choice(PING_MESSAGES)
+            await message.channel.send(f"{mentions} {response}")
+            log.info(f"Keyword triggered by {message.author} in #{message.channel}")
 
     async def fetch_gif(self, action: str) -> Optional[str]:
         """
