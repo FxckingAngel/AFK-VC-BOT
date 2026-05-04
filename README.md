@@ -33,17 +33,24 @@ Sits in a Discord voice channel 24/7 to keep your VC timer counting. Never leave
 | `/vc` | Which voice channel the bot is in |
 | `/help` | List all commands |
 
-## Running 24/7
+## Running 24/7 (systemd — recommended)
 
-Use `screen`, `tmux`, or a systemd service to keep it alive:
+Auto-starts on boot and restarts automatically if it crashes.
 
 ```bash
-# screen
-screen -S afk-vc-bot
-python bot.py
-# Ctrl+A D to detach
+# 1. Copy the service file
+sudo cp afk-vc-bot.service /etc/systemd/system/
 
-# or systemd — create /etc/systemd/system/afk-vc-bot.service
+# 2. Enable and start
+sudo systemctl daemon-reload
+sudo systemctl enable afk-vc-bot
+sudo systemctl start afk-vc-bot
+
+# 3. Check it's running
+sudo systemctl status afk-vc-bot
+
+# 4. View live logs
+journalctl -u afk-vc-bot -f
 ```
 
 The bot has an internal watchdog that checks every 30s and reconnects automatically if it ever drops from the channel.

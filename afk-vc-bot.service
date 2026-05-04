@@ -1,0 +1,20 @@
+[Unit]
+Description=AFK VC Bot — Discord voice channel keeper
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/AFK-VC-BOT
+EnvironmentFile=/home/ubuntu/AFK-VC-BOT/.env
+ExecStart=/usr/bin/python3 /home/ubuntu/AFK-VC-BOT/bot.py
+Restart=always
+RestartSec=10
+
+# Logging — view with: journalctl -u afk-vc-bot -f
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
