@@ -30,7 +30,7 @@ load_dotenv()
 # ── Config ────────────────────────────────────────────────────────────────────
 
 BOT_TOKEN: str = os.environ["TOKEN"]
-VC_CHANNEL_ID: int = int(os.environ["CHANNEL_ID"])
+VC_CHANNEL_ID: int = int(os.environ["CHANNEL_ID"])  # mutable at runtime
 
 RECONNECT_DELAY_SECONDS: int = 5
 MAX_RECONNECT_DELAY_SECONDS: int = 60
@@ -327,6 +327,43 @@ async def cmd_vc(interaction: discord.Interaction) -> None:
             color=discord.Color.red(),
         )
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@bot.tree.command(name="setchannel", description="Move the bot to a different voice channel.")
+@app_commands.describe(channel="The voice channel to move the bot to")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def cmd_setchannel(interaction: discord.Interaction, channel: discord.VoiceChannel) -> None:
+    global VC_CHANNEL_ID
+    old_id = VC_CHANNEL_ID
+    VC_CHANNEL_ID = channel.id
+    # Disconnect from current VC so watchdog reconnects to new one
+    if bot.voice_clients:
+        await bot.voice_clients[0].disconnect(force=True)
+    # Immediately join the new channel
+    success = await bot.join_vc()
+    if success:
+        embed = discord.Embed(
+            title="✅ Channel Updated",
+            description=f"Moved to **#{channel.name}**. Bot will now sit here permanently.",
+            color=discord.Color.green(),
+        )
+        log.info(f"{interaction.user} changed VC to #{channel.name} ({channel.id})")
+    else:
+        VC_CHANNEL_ID = old_id  # rollback on failure
+        embed = discord.Embed(
+            title="❌ Failed",
+            description=f"Could not join **#{channel.name}**. Check bot permissions. Staying in previous channel.",
+            color=discord.Color.red(),
+        )
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@cmd_setchannel.error
+async def setchannel_error(interaction: discord.Interaction, error: app_commands.AppCommandError) -> None:
+    if isinstance(error, app_commands.MissingPermissions):
+        await interaction.response.send_message(
+            "❌ You need **Manage Server** permission to use this command.", ephemeral=True
+        )
 
 
 @bot.tree.command(name="mystats", description="See how many times you've done each roleplay action.")
